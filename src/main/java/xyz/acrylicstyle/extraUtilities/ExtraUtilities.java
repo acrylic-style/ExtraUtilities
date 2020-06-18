@@ -316,6 +316,7 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                 CraftingInventory inventory = (CraftingInventory) e.getInventory();
                 ItemStack[] matrix = inventory.getMatrix();
                 // Angel Ring
+                /*
                 {
                     if (matrix[0] != null && matrix[0].getType() == Material.GLASS
                             && matrix[1] != null && matrix[1].getType() == Material.GOLD_INGOT
@@ -334,6 +335,7 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                         }
                     }
                 }
+                 */
                 // Etheric Sword
                 {
                     if (matrix[0] != null && UnstableIngot.getInstance().isCorrectItem(matrix[0])
