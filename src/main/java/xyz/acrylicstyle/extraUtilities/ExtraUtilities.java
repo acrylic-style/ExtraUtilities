@@ -3,12 +3,14 @@ package xyz.acrylicstyle.extraUtilities;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,6 +24,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -30,32 +33,39 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import util.CollectionList;
 import util.ReflectionHelper;
 import util.reflect.Ref;
+import xyz.acrylicstyle.extraUtilities.blocks.AngelBlock;
 import xyz.acrylicstyle.extraUtilities.item.EUItem;
-import xyz.acrylicstyle.extraUtilities.item.Item;
+import xyz.acrylicstyle.extraUtilities.item.AItem;
 import xyz.acrylicstyle.extraUtilities.items.AngelRing;
 import xyz.acrylicstyle.extraUtilities.items.DivisionSigil;
+import xyz.acrylicstyle.extraUtilities.items.EthericSword;
 import xyz.acrylicstyle.extraUtilities.items.SemiStableNugget;
 import xyz.acrylicstyle.extraUtilities.items.UnstableIngot;
 import xyz.acrylicstyle.extraUtilities.util.BlockUtils;
+import xyz.acrylicstyle.tomeito_api.events.player.EntityDamageByPlayerEvent;
 import xyz.acrylicstyle.tomeito_api.utils.Log;
 
 import java.util.Collections;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 public class ExtraUtilities extends JavaPlugin implements Listener {
     public static CollectionList<EUItem> classes = new CollectionList<>();
     public static NamespacedKey unstable_ingot;
     public static NamespacedKey semi_stable_nugget;
     public static NamespacedKey semi_stable_nugget_unstable_ingot;
+    public static NamespacedKey angel_block;
 
     @Override
     public void onEnable() {
         unstable_ingot = new NamespacedKey(this, "unstable_ingot");
         semi_stable_nugget = new NamespacedKey(this, "semi_stable_nugget");
         semi_stable_nugget_unstable_ingot = new NamespacedKey(this, "semi_stable_nugget_unstable_ingot");
+        angel_block = new NamespacedKey(this, "angel_block");
         {
             ShapedRecipe recipe = new ShapedRecipe(unstable_ingot, UnstableIngot.getInstance().getTickingItemStack());
             recipe.shape("I  ", "V  ", "D  ");
@@ -78,9 +88,18 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
             recipe.setIngredient('N', SemiStableNugget.getInstance().getItemStack());
             Bukkit.addRecipe(recipe);
         }
+        {
+            ShapedRecipe recipe = new ShapedRecipe(angel_block, AngelBlock.getInstance().getItemStack());
+            recipe.shape(" G ", "FOF", "   ");
+            recipe.setIngredient('G', new ItemStack(Material.GOLD_INGOT));
+            recipe.setIngredient('F', new ItemStack(Material.FEATHER));
+            recipe.setIngredient('O', new ItemStack(Material.OBSIDIAN));
+            Bukkit.addRecipe(recipe);
+        }
+        // todo: soul fragment with shapeless recipe?
         Bukkit.getPluginManager().registerEvents(this, this);
         classes.clear();
-        classes.addAll(ReflectionHelper.findAllAnnotatedClasses(this.getClassLoader(), "xyz.acrylicstyle.extraUtilities.items", Item.class)
+        classes.addAll(ReflectionHelper.findAllAnnotatedClasses(this.getClassLoader(), "xyz.acrylicstyle.extraUtilities.items", AItem.class)
                 .filter(clazz -> clazz.getSuperclass().equals(EUItem.class))
                 .map(clazz -> {
                     Log.info("Registering item " + clazz.getName());
@@ -180,6 +199,7 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
         Bukkit.removeRecipe(unstable_ingot);
         Bukkit.removeRecipe(semi_stable_nugget);
         Bukkit.removeRecipe(semi_stable_nugget_unstable_ingot);
+        Bukkit.removeRecipe(angel_block);
     }
 
     @EventHandler
@@ -187,6 +207,14 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
         PlayerInventory i = e.getPlayer().getInventory();
         if (EUItem.isEUItem(i.getItemInMainHand()) || EUItem.isEUItem(i.getItemInOffHand())) {
             e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onEntityDamageByPlayer(EntityDamageByPlayerEvent e) {
+        if (!(e.getEntity() instanceof LivingEntity)) return;
+        if (EthericSword.getInstance().isCorrectItem(e.getDamager().getInventory().getItemInMainHand())) {
+            ((LivingEntity) e.getEntity()).damage(e.getDamage()*0.1); // 10% of the damage is true damage
         }
     }
 
@@ -244,10 +272,36 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent e) {
+        boolean mainHand = e.getHand() == EquipmentSlot.HAND;
+        PlayerInventory inv = e.getPlayer().getInventory();
+        if (AngelBlock.getInstance().isCorrectItem(mainHand ? inv.getItemInMainHand() : inv.getItemInOffHand()) && e.getAction().name().startsWith("RIGHT_CLICK_")) {
+            Location loc = e.getPlayer().getLocation();
+            Vector vector = loc.getDirection();
+            double x = vector.getX();
+            double y = vector.getY();
+            double z = vector.getZ();
+            double x1 = loc.getX();
+            double y1 = loc.getY();
+            double z1 = loc.getZ();
+            Block block = new Location(loc.getWorld(), x1 + x, y1 + y, z1 + z).getBlock();
+            if (block.getType() != Material.AIR) return;
+            block.setType(Material.JIGSAW);
+            if (mainHand) {
+                inv.getItemInMainHand().setAmount(inv.getItemInMainHand().getAmount()-1);
+            } else {
+                inv.getItemInOffHand().setAmount(inv.getItemInOffHand().getAmount()-1);
+            }
+            return; // todo: remove "return"?
+        }
         if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
             classes.filter(eu -> eu.isCorrectItem(e.getItem())).forEach(eu -> eu.onBlockRightClick(e));
         }
         if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.JIGSAW) {
+                e.getPlayer().getInventory().addItem(AngelBlock.getInstance().getItemStack());
+                Objects.requireNonNull(e.getClickedBlock()).setType(Material.AIR);
+                return;
+            }
             classes.filter(eu -> eu.isCorrectItem(e.getItem())).forEach(eu -> eu.onBlockLeftClick(e));
         }
     }
@@ -255,11 +309,13 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if (e.getInventory().getType() != InventoryType.WORKBENCH) return;
+        boolean isResultSlot = e.getSlot() == 0;
         new BukkitRunnable() {
             @Override
             public void run() {
                 CraftingInventory inventory = (CraftingInventory) e.getInventory();
                 ItemStack[] matrix = inventory.getMatrix();
+                // Angel Ring
                 {
                     if (matrix[0] != null && matrix[0].getType() == Material.GLASS
                             && matrix[1] != null && matrix[1].getType() == Material.GOLD_INGOT
@@ -270,12 +326,70 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                             && matrix[6] != null && UnstableIngot.getInstance().isCorrectItem(matrix[6])
                             && matrix[7] != null && matrix[7].getType() == Material.GOLD_INGOT
                             && matrix[8] != null && UnstableIngot.getInstance().isCorrectItem(matrix[8])) {
-                        inventory.setResult(AngelRing.getInstance().getItemStack());
+                        if (isResultSlot) {
+                            inventory.setMatrix(getItemStacks(inventory.getMatrix()));
+                            e.getWhoClicked().getInventory().addItem(AngelRing.getInstance().getItemStack());
+                        } else {
+                            inventory.setResult(AngelRing.getInstance().getItemStack());
+                        }
+                    }
+                }
+                // Etheric Sword
+                {
+                    if (matrix[0] != null && UnstableIngot.getInstance().isCorrectItem(matrix[0])
+                            && matrix[1] == null
+                            && matrix[2] == null
+                            && matrix[3] != null && UnstableIngot.getInstance().isCorrectItem(matrix[3])
+                            && matrix[4] == null
+                            && matrix[5] == null
+                            && matrix[6] != null && matrix[6].getType() == Material.OBSIDIAN
+                            && matrix[7] == null
+                            && matrix[8] == null) {
+                        if (isResultSlot) {
+                            inventory.setMatrix(getItemStacks(inventory.getMatrix()));
+                            e.getWhoClicked().getInventory().addItem(EthericSword.getInstance().getItemStack());
+                        } else {
+                            inventory.setResult(EthericSword.getInstance().getItemStack());
+                        }
+                    }
+                }
+                {
+                    if (matrix[0] == null
+                            && matrix[1] != null && UnstableIngot.getInstance().isCorrectItem(matrix[1])
+                            && matrix[2] == null
+                            && matrix[3] == null
+                            && matrix[4] != null && UnstableIngot.getInstance().isCorrectItem(matrix[4])
+                            && matrix[5] == null
+                            && matrix[6] == null
+                            && matrix[7] != null && matrix[7].getType() == Material.OBSIDIAN
+                            && matrix[8] == null) {
+                        if (isResultSlot) {
+                            inventory.setMatrix(getItemStacks(inventory.getMatrix()));
+                            e.getWhoClicked().getInventory().addItem(EthericSword.getInstance().getItemStack());
+                        } else {
+                            inventory.setResult(EthericSword.getInstance().getItemStack());
+                        }
                     }
                 }
                 ((Player) e.getWhoClicked()).updateInventory();
             }
         }.runTaskLater(this, 1); // we need delay!
+    }
+
+    public static ItemStack[] getItemStacks(ItemStack[] items) {
+        ItemStack[] newItems = items.clone();
+        for (int i = 0; i < items.length; i++) {
+            if (items[i] == null) continue;
+            ItemStack item = newItems[i].clone();
+            int amount = items[i].getAmount()-1;
+            if (amount <= 0) {
+                newItems[i] = null;
+            } else {
+                item.setAmount(amount);
+                newItems[i] = item;
+            }
+        }
+        return newItems;
     }
 
     @EventHandler

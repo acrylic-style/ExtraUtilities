@@ -12,14 +12,14 @@ public abstract class EUItem {
     @NotNull
     public abstract ItemStack getItemStack();
 
-    public abstract void onBlockRightClick(@NotNull PlayerInteractEvent e);
+    public void onBlockRightClick(@NotNull PlayerInteractEvent e) {}
 
-    public abstract void onBlockLeftClick(@NotNull PlayerInteractEvent e);
+    public void onBlockLeftClick(@NotNull PlayerInteractEvent e) {}
 
     public abstract boolean isCorrectItem(@Nullable ItemStack itemStack);
 
     @NotNull
-    protected final ItemStack addEUTag(ItemStack item) {
+    protected final ItemStack addEUTag(@NotNull ItemStack item) {
         ItemStackUtils util = Paper.itemStack(item);
         NBTTagCompound tag = util.getOrCreateTag();
         tag.setBoolean("extraUtilityItem", true);
@@ -27,7 +27,7 @@ public abstract class EUItem {
         return util.getItemStack();
     }
 
-    public static boolean isEUItem(ItemStack item) {
+    public static boolean isEUItem(@NotNull ItemStack item) {
         NBTTagCompound tag = Paper.itemStack(item).getOrCreateTag();
         return tag.hasKey("extraUtilityItem") && tag.getBoolean("extraUtilityItem");
     }
