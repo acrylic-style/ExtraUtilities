@@ -31,7 +31,8 @@ public class EthericSword extends EUItem {
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         meta.setLore(Arrays.asList(
                 ChatColor.BLUE + "+10% True Damage",
-                ChatColor.BLUE + "+8.5 Attack Damage"
+                ChatColor.BLUE + "+8.5 Attack Damage",
+                ChatColor.BLUE + "+10% Durability"
         ));
         item.setItemMeta(meta);
         ItemStackUtils util = Paper.itemStack(item);

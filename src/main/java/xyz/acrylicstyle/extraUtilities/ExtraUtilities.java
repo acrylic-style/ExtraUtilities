@@ -12,6 +12,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -23,6 +24,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
@@ -34,12 +36,14 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import util.ReflectionHelper;
 import util.reflect.Ref;
 import xyz.acrylicstyle.extraUtilities.blocks.AngelBlock;
-import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.extraUtilities.item.AItem;
+import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.extraUtilities.items.AngelRing;
 import xyz.acrylicstyle.extraUtilities.items.DivisionSigil;
 import xyz.acrylicstyle.extraUtilities.items.EthericSword;
@@ -59,6 +63,12 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
     public static NamespacedKey semi_stable_nugget;
     public static NamespacedKey semi_stable_nugget_unstable_ingot;
     public static NamespacedKey angel_block;
+    public static ExtraUtilities instance;
+
+    @Override
+    public void onLoad() {
+        instance = this;
+    }
 
     @Override
     public void onEnable() {
@@ -308,13 +318,24 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
-        if (e.getInventory().getType() != InventoryType.WORKBENCH) return;
-        boolean isResultSlot = e.getSlot() == 0;
+        checkRecipe((Player) e.getWhoClicked(), e.getSlot(), e.getInventory(), e);
+    }
+
+    @EventHandler
+    public void onPlayerItemDamage(PlayerItemDamageEvent e) {
+        if (EthericSword.getInstance().isCorrectItem(e.getItem())) {
+            if (Math.random() < 0.10) e.setCancelled(true);
+        }
+    }
+
+    public static void checkRecipe(@NotNull Player player, int slot, @NotNull Inventory inventory, @Nullable Cancellable cancellable) {
+        if (inventory.getType() != InventoryType.WORKBENCH) return;
+        boolean isResultSlot = slot == 0;
         new BukkitRunnable() {
             @Override
             public void run() {
-                CraftingInventory inventory = (CraftingInventory) e.getInventory();
-                ItemStack[] matrix = inventory.getMatrix();
+                CraftingInventory ci = (CraftingInventory) inventory;
+                ItemStack[] matrix = ci.getMatrix();
                 // Angel Ring
                 /*
                 {
@@ -348,10 +369,11 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                             && matrix[7] == null
                             && matrix[8] == null) {
                         if (isResultSlot) {
-                            inventory.setMatrix(getItemStacks(inventory.getMatrix()));
-                            e.getWhoClicked().getInventory().addItem(EthericSword.getInstance().getItemStack());
+                            if (cancellable != null) cancellable.setCancelled(true);
+                            ci.setMatrix(getItemStacks(ci.getMatrix()));
+                            player.getInventory().addItem(EthericSword.getInstance().getItemStack());
                         } else {
-                            inventory.setResult(EthericSword.getInstance().getItemStack());
+                            ci.setResult(EthericSword.getInstance().getItemStack());
                         }
                     }
                 }
@@ -366,16 +388,17 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                             && matrix[7] != null && matrix[7].getType() == Material.OBSIDIAN
                             && matrix[8] == null) {
                         if (isResultSlot) {
-                            inventory.setMatrix(getItemStacks(inventory.getMatrix()));
-                            e.getWhoClicked().getInventory().addItem(EthericSword.getInstance().getItemStack());
+                            if (cancellable != null) cancellable.setCancelled(true);
+                            ci.setMatrix(getItemStacks(ci.getMatrix()));
+                            player.getInventory().addItem(EthericSword.getInstance().getItemStack());
                         } else {
-                            inventory.setResult(EthericSword.getInstance().getItemStack());
+                            ci.setResult(EthericSword.getInstance().getItemStack());
                         }
                     }
                 }
-                ((Player) e.getWhoClicked()).updateInventory();
+                player.updateInventory();
             }
-        }.runTaskLater(this, 1); // we need delay!
+        }.runTaskLater(instance, 1); // we need delay!
     }
 
     public static ItemStack[] getItemStacks(ItemStack[] items) {
@@ -383,7 +406,7 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
         for (int i = 0; i < items.length; i++) {
             if (items[i] == null) continue;
             ItemStack item = newItems[i].clone();
-            int amount = items[i].getAmount()-1;
+            int amount = Math.min(items[i].getAmount(), 64)-1;
             if (amount <= 0) {
                 newItems[i] = null;
             } else {
@@ -396,6 +419,21 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onCraftItem(CraftItemEvent e) {
+        ItemStack[] m = e.getInventory().getMatrix().clone();
+        for (ItemStack itemStack : m) {
+            if (UnstableIngot.getInstance().isCorrectItem(itemStack)) {
+                e.setCancelled(true);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        e.getInventory().setMatrix(getItemStacks(e.getInventory().getMatrix()));
+                        if (e.getPlayer() != null)
+                            e.getPlayer().getInventory().addItem(EthericSword.getInstance().getItemStack());
+                    }
+                }.runTaskLater(this, 1);
+                break;
+            }
+        }
         if (!UnstableIngot.getInstance().isCorrectItem(e.getInventory().getResult())
                 && !SemiStableNugget.getInstance().isCorrectItem(e.getInventory().getResult())) return;
         new BukkitRunnable() {
