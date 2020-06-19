@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
@@ -36,12 +37,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import util.CollectionList;
 import util.ReflectionHelper;
 import util.reflect.Ref;
 import xyz.acrylicstyle.extraUtilities.blocks.AngelBlock;
+import xyz.acrylicstyle.extraUtilities.event.PlayerAngelRingEvent;
+import xyz.acrylicstyle.extraUtilities.event.PlayerAngelRingToggleFlightEvent;
 import xyz.acrylicstyle.extraUtilities.item.AItem;
 import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.extraUtilities.items.AngelRing;
@@ -57,13 +61,13 @@ import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-public class ExtraUtilities extends JavaPlugin implements Listener {
+public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     public static CollectionList<EUItem> classes = new CollectionList<>();
     public static NamespacedKey unstable_ingot;
     public static NamespacedKey semi_stable_nugget;
     public static NamespacedKey semi_stable_nugget_unstable_ingot;
     public static NamespacedKey angel_block;
-    public static ExtraUtilities instance;
+    public static ExtraUtilitiesPlugin instance;
 
     @Override
     public void onLoad() {
@@ -148,13 +152,17 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                     }
                     if (player.getGameMode() == GameMode.SURVIVAL) {
                         new Thread(() -> {
-                            for (ItemStack item : c) {
-                                if (AngelRing.getInstance().isCorrectItem(item)) {
-                                    player.setAllowFlight(true);
-                                    return;
+                            if (hasAngelRing(player)) {
+                                if (!player.getAllowFlight()) {
+                                    if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.ENABLED).callEvent())
+                                        player.setAllowFlight(true);
+                                }
+                            } else {
+                                if (player.getAllowFlight()) {
+                                    if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.DISABLED).callEvent())
+                                        player.setAllowFlight(false);
                                 }
                             }
-                            player.setAllowFlight(false);
                         }).start();
                     }
                 });
@@ -181,6 +189,27 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
         }.runTaskTimer(this, 2, 2);
     }
 
+    @Contract("null -> false")
+    public static boolean hasAngelRing(@Nullable Player player) {
+        if (player == null) return false;
+        ItemStack[] c = player.getInventory().getContents();
+        AngelRing i = AngelRing.getInstance();
+        for (ItemStack itemStack : c) {
+            if (i.isCorrectItem(itemStack)) return true;
+        }
+        return false;
+    }
+
+    @EventHandler
+    public void onPlayerToggleFlight(PlayerToggleFlightEvent e) {
+        if (e.getPlayer().getGameMode() != GameMode.SURVIVAL) return;
+        if (hasAngelRing(e.getPlayer())) {
+            if (!new PlayerAngelRingToggleFlightEvent(e.getPlayer(), e.isFlying(), PlayerAngelRingEvent.State.ENABLED).callEvent()) {
+                e.setCancelled(true);
+            }
+        }
+    }
+
     private void tickDivisionSigil(int i, Inventory inventory, Player player, ItemStack item) {
         if (UnstableIngot.getInstance().isTicking(item)) {
             int ticks = UnstableIngot.getInstance().getTicks(item);
@@ -191,7 +220,7 @@ public class ExtraUtilities extends JavaPlugin implements Listener {
                         inventory.setItem(i, null);
                         player.getWorld().createExplosion(player, player.getLocation(), 7, true);
                     }
-                }.runTask(ExtraUtilities.this);
+                }.runTask(ExtraUtilitiesPlugin.this);
                 return;
             }
             item = UnstableIngot.getInstance().setTicks(item, ticks + 1);
