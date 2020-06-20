@@ -1,6 +1,7 @@
 package xyz.acrylicstyle.extraUtilities.items;
 
 import org.bukkit.ChatColor;
+import org.bukkit.GameRule;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @AItem
 public class DivisionSigil extends EUItem {
@@ -86,44 +88,45 @@ public class DivisionSigil extends EUItem {
         new Thread(() -> getMessages(e.getClickedBlock()).getKey().forEach(e.getPlayer()::sendMessage)).start();
     }
 
-    @Override
-    public void onBlockLeftClick(@NotNull PlayerInteractEvent e) {}
-
     public Map.Entry<List<String>, Boolean> getMessages(Block block) {
         List<String> messages = new ArrayList<>();
         boolean pass = true;
         messages.add("Activation Ritual");
         if (hasRedStoneCircle(block)) {
-            messages.add("- Alter has a redstone circle");
+            messages.add("- 台の周りにレッドストーンがあります"); // (Alter has a redstone circle)");
         } else {
             pass = false;
-            messages.add("! Alter must have a redstone circle");
+            messages.add("! 台の周りにレッドストーンが必要です。"); // (Alter must have a redstone circle)");
         }
         if (isDirt(block)) {
-            messages.add("- Alter and Circle placed on dirt");
+            messages.add("- 台とレッドストーンが土の上にあります "); // (Alter and Circle placed on dirt)");
         } else {
             pass = false;
-            messages.add("! Alter and Circle must be placed on the dirt");
+            messages.add("! 台とレッドストーンは土の上に設置する必要があります"); // (Alter and Circle must be placed on the dirt)");
         }
         if (canSeeMoon(block)) {
-            messages.add("- Alter can see the moon");
+            messages.add("- 台は月が見える状態です"); // (Alter can see the moon)");
         } else {
             pass = false;
-            messages.add("! Alter cannot see the moon");
+            messages.add("! 台は月が見える状態にする必要があります"); // (Alter cannot see the moon");
         }
         if (isAlterInDarkness(block)) {
-            messages.add("- Alter is in darkness");
+            messages.add("- 台の周りは真っ暗です"); // (Alter is in darkness");
         } else {
             pass = false;
-            messages.add("! Alter must be in darkness");
+            messages.add("! 台の周りは真っ暗にする必要があります"); // (Alter must be in darkness");
         }
-        if (isRightTime(block)) {
-            messages.add("- Time is right");
-        } else {
+        TimeReason time = isRightTime(block);
+        if (time == TimeReason.RIGHT) {
+            messages.add("- 現在このワールドは夜です");
+        } else if (time == TimeReason.NOT_RIGHT) {
             pass = false;
-            messages.add("! Time isn't right");
+            messages.add("! 夜の間のみ儀式ができます");
+        } else if (time == TimeReason.LOCKED) {
+            pass = false;
+            messages.add("! doDaylightCycleはオフです");
         }
-        if (pass) messages.add("Perform the sacrifice");
+        if (pass) messages.add("儀式が実行可能です");
         return new AbstractMap.SimpleImmutableEntry<>(messages, pass);
     }
 
@@ -169,8 +172,15 @@ public class DivisionSigil extends EUItem {
         return block.getLightFromBlocks() < 1;
     }
 
-    private boolean isRightTime(Block block) {
+    private TimeReason isRightTime(Block block) {
+        if (!Objects.requireNonNull(block.getWorld().getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE))) return TimeReason.LOCKED;
         long time = block.getWorld().getFullTime();
-        return time > 17500 && time < 18500;
+        return time > 17500 && time < 18500 ? TimeReason.RIGHT : TimeReason.NOT_RIGHT;
+    }
+
+    public enum TimeReason {
+        RIGHT,
+        NOT_RIGHT,
+        LOCKED
     }
 }

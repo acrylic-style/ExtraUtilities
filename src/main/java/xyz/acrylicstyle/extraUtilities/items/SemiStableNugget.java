@@ -2,13 +2,12 @@ package xyz.acrylicstyle.extraUtilities.items;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.extraUtilities.item.AItem;
+import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.paper.Paper;
 import xyz.acrylicstyle.paper.inventory.ItemStackUtils;
 import xyz.acrylicstyle.paper.nbt.NBTTagCompound;
@@ -31,12 +30,6 @@ public class SemiStableNugget extends EUItem {
         util.setTag(tag);
         return util.getItemStack();
     }
-
-    @Override
-    public void onBlockRightClick(@NotNull PlayerInteractEvent e) {}
-
-    @Override
-    public void onBlockLeftClick(@NotNull PlayerInteractEvent e) {}
 
     @Override
     public boolean isCorrectItem(@Nullable ItemStack itemStack) {

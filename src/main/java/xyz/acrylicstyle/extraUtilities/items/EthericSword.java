@@ -4,7 +4,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -41,12 +40,6 @@ public class EthericSword extends EUItem {
         util.setTag(tag);
         return util.getItemStack();
     }
-
-    @Override
-    public void onBlockRightClick(@NotNull PlayerInteractEvent e) {}
-
-    @Override
-    public void onBlockLeftClick(@NotNull PlayerInteractEvent e) {}
 
     @Override
     public boolean isCorrectItem(@Nullable ItemStack itemStack) {

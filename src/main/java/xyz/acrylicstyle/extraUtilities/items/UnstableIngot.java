@@ -2,7 +2,6 @@ package xyz.acrylicstyle.extraUtilities.items;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -80,16 +79,6 @@ public class UnstableIngot extends EUItem {
         tag.setInt("unstableIngotTicks", ticks);
         util.setTag(tag);
         return util.getItemStack();
-    }
-
-    @Override
-    public void onBlockRightClick(@NotNull PlayerInteractEvent e) {
-
-    }
-
-    @Override
-    public void onBlockLeftClick(@NotNull PlayerInteractEvent e) {
-
     }
 
     @Override

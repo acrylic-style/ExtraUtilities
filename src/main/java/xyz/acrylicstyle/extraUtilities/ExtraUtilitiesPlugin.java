@@ -54,7 +54,9 @@ import xyz.acrylicstyle.extraUtilities.items.EthericSword;
 import xyz.acrylicstyle.extraUtilities.items.SemiStableNugget;
 import xyz.acrylicstyle.extraUtilities.items.UnstableIngot;
 import xyz.acrylicstyle.extraUtilities.util.BlockUtils;
+import xyz.acrylicstyle.extraUtilities.util.ItemUtils;
 import xyz.acrylicstyle.tomeito_api.events.player.EntityDamageByPlayerEvent;
+import xyz.acrylicstyle.tomeito_api.providers.ConfigProvider;
 import xyz.acrylicstyle.tomeito_api.utils.Log;
 
 import java.util.Collections;
@@ -68,6 +70,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     public static NamespacedKey semi_stable_nugget_unstable_ingot;
     public static NamespacedKey angel_block;
     public static ExtraUtilitiesPlugin instance;
+    public static ConfigProvider config = null;
 
     @Override
     public void onLoad() {
@@ -76,6 +79,9 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        Log.info("Loading config");
+        config = ConfigProvider.getConfig("./plugins/ExtraUtilities/config.yml");
+        Log.info("Registering config");
         unstable_ingot = new NamespacedKey(this, "unstable_ingot");
         semi_stable_nugget = new NamespacedKey(this, "semi_stable_nugget");
         semi_stable_nugget_unstable_ingot = new NamespacedKey(this, "semi_stable_nugget_unstable_ingot");
@@ -85,7 +91,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             recipe.shape("I  ", "V  ", "D  ");
             recipe.setIngredient('I', new ItemStack(Material.IRON_INGOT));
             recipe.setIngredient('V', DivisionSigil.getInstance().getActiveItemStack());
-            recipe.setIngredient('D', new ItemStack(Material.DIAMOND));
+            recipe.setIngredient('D', ItemUtils.getCompressedItemStack(Material.SADDLE, ChatColor.WHITE + "Diamond Plate"));
             Bukkit.addRecipe(recipe);
         }
         {
@@ -93,7 +99,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             recipe.shape("N  ", "V  ", "D  ");
             recipe.setIngredient('N', new ItemStack(Material.GOLD_NUGGET));
             recipe.setIngredient('V', DivisionSigil.getInstance().getActiveItemStack());
-            recipe.setIngredient('D', new ItemStack(Material.DIAMOND));
+            recipe.setIngredient('D', ItemUtils.getCompressedItemStack(Material.DIAMOND_BLOCK, "圧縮されたダイヤモンドブロック")); // requires 162 diamonds
             Bukkit.addRecipe(recipe);
         }
         {
@@ -111,16 +117,19 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             Bukkit.addRecipe(recipe);
         }
         // todo: soul fragment with shapeless recipe?
+        Log.info("Registering events");
         Bukkit.getPluginManager().registerEvents(this, this);
+        Log.info("Registering items");
         classes.clear();
         classes.addAll(ReflectionHelper.findAllAnnotatedClasses(this.getClassLoader(), "xyz.acrylicstyle.extraUtilities.items", AItem.class)
                 .filter(clazz -> clazz.getSuperclass().equals(EUItem.class))
                 .map(clazz -> {
                     Log.info("Registering item " + clazz.getName());
                     return (EUItem) Ref.getMethodOptional(clazz, "getInstance")
-                            .orElseThrow(() -> new NoSuchElementException("Requires getInstance method"))
+                            .orElseThrow(() -> new NoSuchElementException("Requires static getInstance method"))
                             .invoke(null);
                 }));
+        Log.info("Running tasks 1/2");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -168,6 +177,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                 });
             }
         }.runTaskTimer(this, 20, 20);
+        Log.info("Running tasks 2/2");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -235,10 +245,13 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        Log.info("Unregistering recipes");
         Bukkit.removeRecipe(unstable_ingot);
         Bukkit.removeRecipe(semi_stable_nugget);
         Bukkit.removeRecipe(semi_stable_nugget_unstable_ingot);
         Bukkit.removeRecipe(angel_block);
+        Log.info("Saving config");
+        config.save();
     }
 
     @EventHandler
@@ -290,8 +303,8 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             }
         }
         if (e.getEntity().getType() == EntityType.WITHER) {
-            if (Math.random() < 0.5) {
-                e.getDrops().add(DivisionSigil.getInstance().getItemStack()); // drops (inactive) division sigil with the chances of 50%
+            if (Math.random() < 0.1) { // when in multiplayer, it's very easy to get division sigil so we'll limit drop chance to 10% here
+                e.getDrops().add(DivisionSigil.getInstance().getItemStack());
             }
         }
     }
