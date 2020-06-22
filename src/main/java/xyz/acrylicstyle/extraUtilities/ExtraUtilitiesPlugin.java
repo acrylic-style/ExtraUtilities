@@ -135,7 +135,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             public void run() {
                 Bukkit.getOnlinePlayers().forEach(player -> {
                     ItemStack[] c = player.getInventory().getContents();
-                    long time = player.getWorld().getFullTime();
+                    long time = player.getWorld().getTime();
                     if (time > 17500 && time < 18500) {
                         new Thread(() -> {
                             for (ItemStack itemStack : c) {
@@ -360,6 +360,11 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
+        if (e.getInventory().getType() == InventoryType.CHEST) {
+            if (EUItem.isEUItem(e.getCurrentItem())) {
+                e.setCancelled(true);
+            }
+        }
         checkRecipe((Player) e.getWhoClicked(), e.getSlot(), e.getInventory(), e);
     }
 

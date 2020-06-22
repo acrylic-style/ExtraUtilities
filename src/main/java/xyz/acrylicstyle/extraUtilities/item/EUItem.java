@@ -27,8 +27,7 @@ public abstract class EUItem {
         return util.getItemStack();
     }
 
-    public static boolean isEUItem(@NotNull ItemStack item) {
-        NBTTagCompound tag = Paper.itemStack(item).getOrCreateTag();
-        return tag.hasKey("extraUtilityItem") && tag.getBoolean("extraUtilityItem");
+    public static boolean isEUItem(@Nullable ItemStack item) {
+        return item != null && Paper.itemStack(item).getOrCreateTag().getBoolean("extraUtilityItem");
     }
 }

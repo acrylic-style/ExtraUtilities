@@ -174,7 +174,7 @@ public class DivisionSigil extends EUItem {
 
     private TimeReason isRightTime(Block block) {
         if (!Objects.requireNonNull(block.getWorld().getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE))) return TimeReason.LOCKED;
-        long time = block.getWorld().getFullTime();
+        long time = block.getWorld().getTime();
         return time > 17500 && time < 18500 ? TimeReason.RIGHT : TimeReason.NOT_RIGHT;
     }
 
