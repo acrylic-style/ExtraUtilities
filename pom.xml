@@ -53,24 +53,22 @@
             <id>acrylic-repo</id>
             <url>https://repo.acrylicstyle.xyz/</url>
         </repository>
+        <repository>
+            <id>acrylic-repo2</id>
+            <url>https://repo2.acrylicstyle.xyz/</url>
+        </repository>
     </repositories>
     <dependencies>
         <dependency>
-            <groupId>com.destroystokyo.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.15.2-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>xyz.acrylicstyle</groupId>
-            <artifactId>Util</artifactId>
-            <version>0.11.12</version>
+            <groupId>xyz.acrylicstyle.grid</groupId>
+            <artifactId>grid-api</artifactId>
+            <version>1.16.3-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>xyz.acrylicstyle</groupId>
             <artifactId>api</artifactId>
-            <version>0.5.1</version>
+            <version>0.7.4a</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

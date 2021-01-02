@@ -46,7 +46,7 @@ import util.reflect.Ref;
 import xyz.acrylicstyle.extraUtilities.blocks.AngelBlock;
 import xyz.acrylicstyle.extraUtilities.event.PlayerAngelRingEvent;
 import xyz.acrylicstyle.extraUtilities.event.PlayerAngelRingToggleFlightEvent;
-import xyz.acrylicstyle.extraUtilities.item.AItem;
+import xyz.acrylicstyle.extraUtilities.item.Item;
 import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.extraUtilities.items.AngelRing;
 import xyz.acrylicstyle.extraUtilities.items.DivisionSigil;
@@ -121,7 +121,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         Log.info("Registering items");
         classes.clear();
-        classes.addAll(ReflectionHelper.findAllAnnotatedClasses(this.getClassLoader(), "xyz.acrylicstyle.extraUtilities.items", AItem.class)
+        classes.addAll(ReflectionHelper.findAllAnnotatedClasses(this.getClassLoader(), "xyz.acrylicstyle.extraUtilities.items", Item.class)
                 .filter(clazz -> clazz.getSuperclass().equals(EUItem.class))
                 .map(clazz -> {
                     Log.info("Registering item " + clazz.getName());
@@ -160,19 +160,17 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                         }).start();
                     }
                     if (player.getGameMode() == GameMode.SURVIVAL) {
-                        new Thread(() -> {
-                            if (hasAngelRing(player)) {
-                                if (!player.getAllowFlight()) {
-                                    if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.ENABLED).callEvent())
-                                        player.setAllowFlight(true);
-                                }
-                            } else {
-                                if (player.getAllowFlight()) {
-                                    if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.DISABLED).callEvent())
-                                        player.setAllowFlight(false);
-                                }
+                        if (hasAngelRing(player)) {
+                            if (!player.getAllowFlight()) {
+                                if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.ENABLED).callEvent())
+                                    player.setAllowFlight(true);
                             }
-                        }).start();
+                        } else {
+                            if (player.getAllowFlight()) {
+                                if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.DISABLED).callEvent())
+                                    player.setAllowFlight(false);
+                            }
+                        }
                     }
                 });
             }
@@ -361,7 +359,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if (e.getInventory().getType() == InventoryType.CHEST) {
-            if (EUItem.isEUItem(e.getCurrentItem())) {
+            if (UnstableIngot.getInstance().isCorrectItem(e.getCurrentItem())) {
                 e.setCancelled(true);
             }
         }
@@ -474,8 +472,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                     @Override
                     public void run() {
                         e.getInventory().setMatrix(getItemStacks(e.getInventory().getMatrix()));
-                        if (e.getPlayer() != null)
-                            e.getPlayer().getInventory().addItem(EthericSword.getInstance().getItemStack());
+                        e.getWhoClicked().getInventory().addItem(EthericSword.getInstance().getItemStack());
                     }
                 }.runTaskLater(this, 1);
                 break;
@@ -489,7 +486,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                 if (UnstableIngot.getInstance().isCorrectItem(e.getInventory().getResult())
                         && !UnstableIngot.getInstance().isTicking(e.getInventory().getResult())) return;
                 e.getInventory().setItem(4, DivisionSigil.getInstance().getActiveItemStack());
-                if (e.getPlayer() != null) e.getPlayer().updateInventory();
+                ((Player) e.getWhoClicked()).updateInventory();
             }
         }.runTask(this);
     }

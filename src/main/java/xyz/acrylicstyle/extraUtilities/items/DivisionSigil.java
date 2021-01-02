@@ -13,7 +13,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.acrylicstyle.extraUtilities.item.EUItem;
-import xyz.acrylicstyle.extraUtilities.item.AItem;
+import xyz.acrylicstyle.extraUtilities.item.Item;
 import xyz.acrylicstyle.paper.Paper;
 import xyz.acrylicstyle.paper.inventory.ItemStackUtils;
 import xyz.acrylicstyle.paper.nbt.NBTTagCompound;
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-@AItem
+@Item
 public class DivisionSigil extends EUItem {
     private static final DivisionSigil instance = new DivisionSigil();
 

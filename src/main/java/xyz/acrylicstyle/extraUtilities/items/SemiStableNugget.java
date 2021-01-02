@@ -6,13 +6,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import xyz.acrylicstyle.extraUtilities.item.AItem;
+import xyz.acrylicstyle.extraUtilities.item.Item;
 import xyz.acrylicstyle.extraUtilities.item.EUItem;
 import xyz.acrylicstyle.paper.Paper;
 import xyz.acrylicstyle.paper.inventory.ItemStackUtils;
 import xyz.acrylicstyle.paper.nbt.NBTTagCompound;
 
-@AItem
+@Item
 public class SemiStableNugget extends EUItem {
     private static final SemiStableNugget instance = new SemiStableNugget();
 
