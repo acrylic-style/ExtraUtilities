@@ -1,6 +1,4 @@
 name: ExtraUtilities
-main: xyz.acrylicstyle.extraUtilities.ExtraUtilitiesPlugin
+main: xyz.acrylicstyle.extrautilities.ExtraUtilitiesPlugin
 version: "1.0"
-api-version: "1.15"
-depend:
-  - TomeitoLib
+api-version: "1.20"

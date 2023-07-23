@@ -1,17 +1,16 @@
-package xyz.acrylicstyle.extraUtilities.blocks;
+package xyz.acrylicstyle.extrautilities.blocks;
 
+import net.minecraft.nbt.NBTTagCompound;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import xyz.acrylicstyle.extraUtilities.block.ABlock;
-import xyz.acrylicstyle.extraUtilities.block.EUBlock;
-import xyz.acrylicstyle.paper.Paper;
-import xyz.acrylicstyle.paper.inventory.ItemStackUtils;
-import xyz.acrylicstyle.paper.nbt.NBTTagCompound;
+import xyz.acrylicstyle.extrautilities.block.ABlock;
+import xyz.acrylicstyle.extrautilities.block.EUBlock;
 
 @ABlock
 public class AngelBlock extends EUBlock {
@@ -33,17 +32,18 @@ public class AngelBlock extends EUBlock {
     public @NotNull ItemStack getItemStack() {
         ItemStack item = new ItemStack(Material.JIGSAW);
         ItemMeta meta = item.getItemMeta();
+        assert meta != null;
         meta.setDisplayName(ChatColor.WHITE + "Angel Block");
         item.setItemMeta(meta);
-        ItemStackUtils util = Paper.itemStack(item);
-        NBTTagCompound tag = util.getOrCreateTag();
-        tag.setBoolean("angelBlock", true);
-        util.setTag(tag);
-        return util.getItemStack();
+        net.minecraft.world.item.ItemStack nms = CraftItemStack.asNMSCopy(item);
+        NBTTagCompound tag = nms.w(); // getOrCreateTag()
+        tag.a("angelBlock", true); // setBoolean
+        nms.c(tag); // setTag
+        return CraftItemStack.asBukkitCopy(nms);
     }
 
     @Override
     public boolean isCorrectItem(@Nullable ItemStack itemStack) {
-        return itemStack != null && Paper.itemStack(itemStack).getOrCreateTag().getBoolean("angelBlock");
+        return itemStack != null && CraftItemStack.asNMSCopy(itemStack).w().q("angelBlock"); // getOrCreateTag().getBoolean()
     }
 }

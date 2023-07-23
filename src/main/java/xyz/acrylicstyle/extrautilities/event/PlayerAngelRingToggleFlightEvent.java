@@ -1,4 +1,4 @@
-package xyz.acrylicstyle.extraUtilities.event;
+package xyz.acrylicstyle.extrautilities.event;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerToggleFlightEvent;

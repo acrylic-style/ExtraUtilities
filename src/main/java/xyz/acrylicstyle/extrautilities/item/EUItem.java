@@ -1,12 +1,11 @@
-package xyz.acrylicstyle.extraUtilities.item;
+package xyz.acrylicstyle.extrautilities.item;
 
+import net.minecraft.nbt.NBTTagCompound;
+import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import xyz.acrylicstyle.paper.Paper;
-import xyz.acrylicstyle.paper.inventory.ItemStackUtils;
-import xyz.acrylicstyle.paper.nbt.NBTTagCompound;
 
 public abstract class EUItem {
     @NotNull
@@ -20,14 +19,14 @@ public abstract class EUItem {
 
     @NotNull
     protected final ItemStack addEUTag(@NotNull ItemStack item) {
-        ItemStackUtils util = Paper.itemStack(item);
-        NBTTagCompound tag = util.getOrCreateTag();
-        tag.setBoolean("extraUtilityItem", true);
-        util.setTag(tag);
-        return util.getItemStack();
+        net.minecraft.world.item.ItemStack nms = CraftItemStack.asNMSCopy(item);
+        NBTTagCompound tag = nms.w(); // getOrCreateTag()
+        tag.a("extraUtilityItem", true); // setBoolean
+        nms.c(tag); // setTag
+        return CraftItemStack.asBukkitCopy(nms);
     }
 
     public static boolean isEUItem(@Nullable ItemStack item) {
-        return item != null && Paper.itemStack(item).getOrCreateTag().getBoolean("extraUtilityItem");
+        return item != null && CraftItemStack.asNMSCopy(item).w().q("extraUtilityItem"); // getOrCreateTag().getBoolean()
     }
 }

@@ -1,4 +1,4 @@
-package xyz.acrylicstyle.extraUtilities;
+package xyz.acrylicstyle.extrautilities;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -16,6 +16,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -26,13 +27,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
-import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -40,37 +35,31 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import util.CollectionList;
-import util.ReflectionHelper;
-import util.reflect.Ref;
-import xyz.acrylicstyle.extraUtilities.blocks.AngelBlock;
-import xyz.acrylicstyle.extraUtilities.event.PlayerAngelRingEvent;
-import xyz.acrylicstyle.extraUtilities.event.PlayerAngelRingToggleFlightEvent;
-import xyz.acrylicstyle.extraUtilities.item.Item;
-import xyz.acrylicstyle.extraUtilities.item.EUItem;
-import xyz.acrylicstyle.extraUtilities.items.AngelRing;
-import xyz.acrylicstyle.extraUtilities.items.DivisionSigil;
-import xyz.acrylicstyle.extraUtilities.items.EthericSword;
-import xyz.acrylicstyle.extraUtilities.items.SemiStableNugget;
-import xyz.acrylicstyle.extraUtilities.items.UnstableIngot;
-import xyz.acrylicstyle.extraUtilities.util.BlockUtils;
-import xyz.acrylicstyle.extraUtilities.util.ItemUtils;
-import xyz.acrylicstyle.tomeito_api.events.player.EntityDamageByPlayerEvent;
-import xyz.acrylicstyle.tomeito_api.providers.ConfigProvider;
-import xyz.acrylicstyle.tomeito_api.utils.Log;
+import xyz.acrylicstyle.extrautilities.blocks.AngelBlock;
+import xyz.acrylicstyle.extrautilities.event.PlayerAngelRingEvent;
+import xyz.acrylicstyle.extrautilities.event.PlayerAngelRingToggleFlightEvent;
+import xyz.acrylicstyle.extrautilities.item.EUItem;
+import xyz.acrylicstyle.extrautilities.items.AngelRing;
+import xyz.acrylicstyle.extrautilities.items.DivisionSigil;
+import xyz.acrylicstyle.extrautilities.items.EthericSword;
+import xyz.acrylicstyle.extrautilities.items.SemiStableNugget;
+import xyz.acrylicstyle.extrautilities.items.UnstableIngot;
+import xyz.acrylicstyle.extrautilities.util.BlockUtils;
 
-import java.util.Collections;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.*;
 
 public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
-    public static CollectionList<EUItem> classes = new CollectionList<>();
+    public static final List<EUItem> ITEMS = new ArrayList<>();
     public static NamespacedKey unstable_ingot;
     public static NamespacedKey semi_stable_nugget;
     public static NamespacedKey semi_stable_nugget_unstable_ingot;
     public static NamespacedKey angel_block;
     public static ExtraUtilitiesPlugin instance;
-    public static ConfigProvider config = null;
+    public static int modelAngelRing = 0;
+    public static int modelDivisionSigil = 0;
+    public static int modelEthericSword = 0;
+    public static int modelSemiStableNugget = 0;
+    public static int modelUnstableIngot = 0;
 
     @Override
     public void onLoad() {
@@ -79,9 +68,12 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        Log.info("Loading config");
-        config = ConfigProvider.getConfig("./plugins/ExtraUtilities/config.yml");
-        Log.info("Registering config");
+        saveDefaultConfig();
+        modelAngelRing = getConfig().getInt("custom-model-data.angel-ring", 1);
+        modelDivisionSigil = getConfig().getInt("custom-model-data.division-sigil", 2);
+        modelEthericSword = getConfig().getInt("custom-model-data.etheric-sword", 1);
+        modelSemiStableNugget = getConfig().getInt("custom-model-data.semi-stable-nugget", 3);
+        modelUnstableIngot = getConfig().getInt("custom-model-data.unstable-ingot", 4);
         unstable_ingot = new NamespacedKey(this, "unstable_ingot");
         semi_stable_nugget = new NamespacedKey(this, "semi_stable_nugget");
         semi_stable_nugget_unstable_ingot = new NamespacedKey(this, "semi_stable_nugget_unstable_ingot");
@@ -89,47 +81,40 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
         {
             ShapedRecipe recipe = new ShapedRecipe(unstable_ingot, UnstableIngot.getInstance().getTickingItemStack());
             recipe.shape("I  ", "V  ", "D  ");
-            recipe.setIngredient('I', new ItemStack(Material.IRON_INGOT));
-            recipe.setIngredient('V', DivisionSigil.getInstance().getActiveItemStack());
-            recipe.setIngredient('D', ItemUtils.getCompressedItemStack(Material.SADDLE, ChatColor.WHITE + "Diamond Plate"));
+            recipe.setIngredient('I', Material.IRON_INGOT);
+            recipe.setIngredient('V', new RecipeChoice.ExactChoice(DivisionSigil.getInstance().getActiveItemStack()));
+            recipe.setIngredient('D', Material.DIAMOND);
             Bukkit.addRecipe(recipe);
         }
         {
             ShapedRecipe recipe = new ShapedRecipe(semi_stable_nugget, SemiStableNugget.getInstance().getItemStack());
             recipe.shape("N  ", "V  ", "D  ");
-            recipe.setIngredient('N', new ItemStack(Material.GOLD_NUGGET));
-            recipe.setIngredient('V', DivisionSigil.getInstance().getActiveItemStack());
-            recipe.setIngredient('D', ItemUtils.getCompressedItemStack(Material.DIAMOND_BLOCK, "圧縮されたダイヤモンドブロック")); // requires 162 diamonds
+            recipe.setIngredient('N', Material.GOLD_NUGGET);
+            recipe.setIngredient('V', new RecipeChoice.ExactChoice(DivisionSigil.getInstance().getActiveItemStack()));
+            recipe.setIngredient('D', Material.DIAMOND);
             Bukkit.addRecipe(recipe);
         }
         {
             ShapedRecipe recipe = new ShapedRecipe(semi_stable_nugget_unstable_ingot, UnstableIngot.getInstance().getStableItemStack());
             recipe.shape("NNN", "NNN", "NNN");
-            recipe.setIngredient('N', SemiStableNugget.getInstance().getItemStack());
+            recipe.setIngredient('N', new RecipeChoice.ExactChoice(SemiStableNugget.getInstance().getItemStack()));
             Bukkit.addRecipe(recipe);
         }
         {
             ShapedRecipe recipe = new ShapedRecipe(angel_block, AngelBlock.getInstance().getItemStack());
             recipe.shape(" G ", "FOF", "   ");
-            recipe.setIngredient('G', new ItemStack(Material.GOLD_INGOT));
-            recipe.setIngredient('F', new ItemStack(Material.FEATHER));
-            recipe.setIngredient('O', new ItemStack(Material.OBSIDIAN));
+            recipe.setIngredient('G', Material.GOLD_INGOT);
+            recipe.setIngredient('F', Material.FEATHER);
+            recipe.setIngredient('O', Material.OBSIDIAN);
             Bukkit.addRecipe(recipe);
         }
         // todo: soul fragment with shapeless recipe?
-        Log.info("Registering events");
         Bukkit.getPluginManager().registerEvents(this, this);
-        Log.info("Registering items");
-        classes.clear();
-        classes.addAll(ReflectionHelper.findAllAnnotatedClasses(this.getClassLoader(), "xyz.acrylicstyle.extraUtilities.items", Item.class)
-                .filter(clazz -> clazz.getSuperclass().equals(EUItem.class))
-                .map(clazz -> {
-                    Log.info("Registering item " + clazz.getName());
-                    return (EUItem) Ref.getMethodOptional(clazz, "getInstance")
-                            .orElseThrow(() -> new NoSuchElementException("Requires static getInstance method"))
-                            .invoke(null);
-                }));
-        Log.info("Running tasks 1/2");
+        ITEMS.add(new AngelRing());
+        ITEMS.add(new DivisionSigil());
+        ITEMS.add(new EthericSword());
+        ITEMS.add(new SemiStableNugget());
+        ITEMS.add(new UnstableIngot());
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -137,45 +122,48 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                     ItemStack[] c = player.getInventory().getContents();
                     long time = player.getWorld().getTime();
                     if (time > 17500 && time < 18500) {
-                        new Thread(() -> {
-                            for (ItemStack itemStack : c) {
-                                if (DivisionSigil.getInstance().isCorrectItem(itemStack)) {
-                                    ItemMeta meta = itemStack.getItemMeta();
-                                    meta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 1, true);
-                                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
-                                    itemStack.setItemMeta(meta);
-                                }
+                        for (ItemStack itemStack : c) {
+                            if (DivisionSigil.getInstance().isCorrectItem(itemStack)) {
+                                ItemMeta meta = itemStack.getItemMeta();
+                                assert meta != null;
+                                meta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 1, true);
+                                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+                                itemStack.setItemMeta(meta);
                             }
-                        }).start();
+                        }
                     } else {
-                        new Thread(() -> {
-                            for (ItemStack itemStack : c) {
-                                if (DivisionSigil.getInstance().isCorrectItem(itemStack) && !DivisionSigil.getInstance().isActive(itemStack)) {
-                                    ItemMeta meta = itemStack.getItemMeta();
-                                    meta.removeEnchant(Enchantment.PROTECTION_ENVIRONMENTAL);
-                                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
-                                    itemStack.setItemMeta(meta);
-                                }
+                        for (ItemStack itemStack : c) {
+                            if (DivisionSigil.getInstance().isCorrectItem(itemStack) && !DivisionSigil.getInstance().isActive(itemStack)) {
+                                ItemMeta meta = itemStack.getItemMeta();
+                                assert meta != null;
+                                meta.removeEnchant(Enchantment.PROTECTION_ENVIRONMENTAL);
+                                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+                                itemStack.setItemMeta(meta);
                             }
-                        }).start();
+                        }
                     }
                     if (player.getGameMode() == GameMode.SURVIVAL) {
                         if (hasAngelRing(player)) {
                             if (!player.getAllowFlight()) {
-                                if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.ENABLED).callEvent())
+                                PlayerAngelRingEvent event = new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.ENABLED);
+                                Bukkit.getPluginManager().callEvent(event);
+                                if (!event.isCancelled()) {
                                     player.setAllowFlight(true);
+                                }
                             }
                         } else {
                             if (player.getAllowFlight()) {
-                                if (new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.DISABLED).callEvent())
+                                PlayerAngelRingEvent event = new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.DISABLED);
+                                Bukkit.getPluginManager().callEvent(event);
+                                if (!event.isCancelled()) {
                                     player.setAllowFlight(false);
+                                }
                             }
                         }
                     }
                 });
             }
         }.runTaskTimer(this, 20, 20);
-        Log.info("Running tasks 2/2");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -190,6 +178,12 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                         c = ((CraftingInventory) inventory).getMatrix();
                         for (int i = 0; i < c.length; i++) {
                             tickDivisionSigil(i + 1, inventory, player, c[i]);
+                        }
+                    } else if (!(player.getOpenInventory().getTopInventory() instanceof PlayerInventory)) {
+                        inventory = player.getOpenInventory().getTopInventory();
+                        c = inventory.getContents();
+                        for (int i = 0; i < c.length; i++) {
+                            tickDivisionSigil(i, inventory, player, c[i]);
                         }
                     }
                 });
@@ -212,7 +206,9 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     public void onPlayerToggleFlight(PlayerToggleFlightEvent e) {
         if (e.getPlayer().getGameMode() != GameMode.SURVIVAL) return;
         if (hasAngelRing(e.getPlayer())) {
-            if (!new PlayerAngelRingToggleFlightEvent(e.getPlayer(), e.isFlying(), PlayerAngelRingEvent.State.ENABLED).callEvent()) {
+            PlayerAngelRingToggleFlightEvent event = new PlayerAngelRingToggleFlightEvent(e.getPlayer(), e.isFlying(), e.isFlying() ? PlayerAngelRingEvent.State.ENABLED : PlayerAngelRingEvent.State.DISABLED);
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled()) {
                 e.setCancelled(true);
             }
         }
@@ -226,7 +222,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                     @Override
                     public void run() {
                         inventory.setItem(i, null);
-                        player.getWorld().createExplosion(player, player.getLocation(), 7, true);
+                        player.getWorld().createExplosion(player.getLocation(), 7, true);
                     }
                 }.runTask(ExtraUtilitiesPlugin.this);
                 return;
@@ -234,6 +230,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             item = UnstableIngot.getInstance().setTicks(item, ticks + 1);
             assert item != null;
             ItemMeta meta = item.getItemMeta();
+            assert meta != null;
             meta.setLore(Collections.singletonList(ChatColor.GRAY + "Exploding in " + ((100 - ticks) / 10D) + " seconds"));
             item.setItemMeta(meta);
             ItemStack finalItem = item;
@@ -243,13 +240,10 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        Log.info("Unregistering recipes");
         Bukkit.removeRecipe(unstable_ingot);
         Bukkit.removeRecipe(semi_stable_nugget);
         Bukkit.removeRecipe(semi_stable_nugget_unstable_ingot);
         Bukkit.removeRecipe(angel_block);
-        Log.info("Saving config");
-        config.save();
     }
 
     @EventHandler
@@ -261,9 +255,10 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onEntityDamageByPlayer(EntityDamageByPlayerEvent e) {
+    public void onEntityDamageByPlayer(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player damager)) return;
         if (!(e.getEntity() instanceof LivingEntity)) return;
-        if (EthericSword.getInstance().isCorrectItem(e.getDamager().getInventory().getItemInMainHand())) {
+        if (EthericSword.getInstance().isCorrectItem(damager.getInventory().getItemInMainHand())) {
             ((LivingEntity) e.getEntity()).damage(e.getDamage()*0.1); // 10% of the damage is true damage
         }
     }
@@ -272,14 +267,14 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     public void onPlayerDropItem(PlayerDropItemEvent e) {
         if (UnstableIngot.getInstance().isTicking(e.getItemDrop().getItemStack())) {
             e.getItemDrop().remove();
-            e.getPlayer().getWorld().createExplosion(e.getPlayer(), e.getItemDrop().getLocation(), 7, true);
+            e.getPlayer().getWorld().createExplosion(e.getItemDrop().getLocation(), 7, true);
         }
     }
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent e) {
         if (e.getEntity().getKiller() != null) { // division sigil activation
-            Block block = BlockUtils.getNearbyBlocks(e.getEntity().getLocation(), 3, Collections.singletonList(Material.ENCHANTING_TABLE)).first();
+            Block block = BlockUtils.getNearbyBlocks(e.getEntity().getLocation(), 3, Collections.singletonList(Material.ENCHANTING_TABLE)).stream().findFirst().orElse(null);
             if (block != null) {
                 if (block.getLocation().distance(e.getEntity().getLocation()) < 1.8) {
                     if (DivisionSigil.getInstance().getMessages(block).getValue()) {
@@ -301,7 +296,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             }
         }
         if (e.getEntity().getType() == EntityType.WITHER) {
-            if (Math.random() < 0.1) { // when in multiplayer, it's very easy to get division sigil so we'll limit drop chance to 10% here
+            if (Math.random() < 0.1) { // when in multiplayer, it's very easy to get division sigil, so we'll limit drop chance to 10% here
                 e.getDrops().add(DivisionSigil.getInstance().getItemStack());
             }
         }
@@ -315,7 +310,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             ItemStack item = c[i];
             if (UnstableIngot.getInstance().isTicking(item)) {
                 e.getPlayer().getInventory().setItem(i, null);
-                e.getPlayer().getWorld().createExplosion(e.getPlayer(), e.getPlayer().getLocation(), 7, true);
+                e.getPlayer().getWorld().createExplosion(e.getPlayer().getLocation(), 7, true);
             }
         }
     }
@@ -344,7 +339,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             return; // todo: remove "return"?
         }
         if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            classes.filter(eu -> eu.isCorrectItem(e.getItem())).forEach(eu -> eu.onBlockRightClick(e));
+            ITEMS.stream().filter(eu -> eu.isCorrectItem(e.getItem())).forEach(eu -> eu.onBlockRightClick(e));
         }
         if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.JIGSAW) {
@@ -352,7 +347,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                 Objects.requireNonNull(e.getClickedBlock()).setType(Material.AIR);
                 return;
             }
-            classes.filter(eu -> eu.isCorrectItem(e.getItem())).forEach(eu -> eu.onBlockLeftClick(e));
+            ITEMS.stream().filter(eu -> eu.isCorrectItem(e.getItem())).forEach(eu -> eu.onBlockLeftClick(e));
         }
     }
 
@@ -441,9 +436,9 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                         }
                     }
                 }
-                player.updateInventory();
+                //player.updateInventory();
             }
-        }.runTaskLater(instance, 1); // we need delay!
+        }.runTaskLater(instance, 1); // we need delay! // TODO: why?
     }
 
     public static ItemStack[] getItemStacks(ItemStack[] items) {
@@ -465,7 +460,11 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onCraftItem(CraftItemEvent e) {
         ItemStack[] m = e.getInventory().getMatrix().clone();
+        boolean stableInMatrix = false;
         for (ItemStack itemStack : m) {
+            if (SemiStableNugget.getInstance().isCorrectItem(itemStack)) {
+                stableInMatrix = true;
+            }
             if (UnstableIngot.getInstance().isCorrectItem(itemStack)) {
                 e.setCancelled(true);
                 new BukkitRunnable() {
@@ -479,15 +478,18 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
             }
         }
         if (!UnstableIngot.getInstance().isCorrectItem(e.getInventory().getResult())
-                && !SemiStableNugget.getInstance().isCorrectItem(e.getInventory().getResult())) return;
+                && !SemiStableNugget.getInstance().isCorrectItem(e.getInventory().getResult())) {
+            return;
+        }
+        boolean finalStableInMatrix = stableInMatrix;
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (UnstableIngot.getInstance().isCorrectItem(e.getInventory().getResult())
+                if (!finalStableInMatrix && UnstableIngot.getInstance().isCorrectItem(e.getInventory().getResult())
                         && !UnstableIngot.getInstance().isTicking(e.getInventory().getResult())) return;
                 e.getInventory().setItem(4, DivisionSigil.getInstance().getActiveItemStack());
-                ((Player) e.getWhoClicked()).updateInventory();
+                //((Player) e.getWhoClicked()).updateInventory();
             }
-        }.runTask(this);
+        }.runTask(this); // return the item after crafting an item
     }
 }
