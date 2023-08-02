@@ -145,19 +145,23 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                     if (player.getGameMode() == GameMode.SURVIVAL) {
                         if (hasAngelRing(player)) {
                             if (!player.getAllowFlight()) {
+                                player.setAllowFlight(true);
+                                /*
                                 PlayerAngelRingEvent event = new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.ENABLED);
                                 Bukkit.getPluginManager().callEvent(event);
                                 if (!event.isCancelled()) {
-                                    player.setAllowFlight(true);
                                 }
+                                */
                             }
                         } else {
                             if (player.getAllowFlight()) {
+                                player.setAllowFlight(false);
+                                /*
                                 PlayerAngelRingEvent event = new PlayerAngelRingEvent(player, PlayerAngelRingEvent.State.DISABLED);
                                 Bukkit.getPluginManager().callEvent(event);
                                 if (!event.isCancelled()) {
-                                    player.setAllowFlight(false);
                                 }
+                                */
                             }
                         }
                     }
@@ -204,6 +208,7 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerToggleFlight(PlayerToggleFlightEvent e) {
+        if (e instanceof PlayerAngelRingToggleFlightEvent) return;
         if (e.getPlayer().getGameMode() != GameMode.SURVIVAL) return;
         if (hasAngelRing(e.getPlayer())) {
             PlayerAngelRingToggleFlightEvent event = new PlayerAngelRingToggleFlightEvent(e.getPlayer(), e.isFlying(), e.isFlying() ? PlayerAngelRingEvent.State.ENABLED : PlayerAngelRingEvent.State.DISABLED);
@@ -377,7 +382,6 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                 CraftingInventory ci = (CraftingInventory) inventory;
                 ItemStack[] matrix = ci.getMatrix();
                 // Angel Ring
-                /*
                 {
                     if (matrix[0] != null && matrix[0].getType() == Material.GLASS
                             && matrix[1] != null && matrix[1].getType() == Material.GOLD_INGOT
@@ -389,14 +393,13 @@ public class ExtraUtilitiesPlugin extends JavaPlugin implements Listener {
                             && matrix[7] != null && matrix[7].getType() == Material.GOLD_INGOT
                             && matrix[8] != null && UnstableIngot.getInstance().isCorrectItem(matrix[8])) {
                         if (isResultSlot) {
-                            inventory.setMatrix(getItemStacks(inventory.getMatrix()));
-                            e.getWhoClicked().getInventory().addItem(AngelRing.getInstance().getItemStack());
+                            ci.setMatrix(getItemStacks(ci.getMatrix()));
+                            player.getInventory().addItem(AngelRing.getInstance().getItemStack());
                         } else {
-                            inventory.setResult(AngelRing.getInstance().getItemStack());
+                            ci.setResult(AngelRing.getInstance().getItemStack());
                         }
                     }
                 }
-                 */
                 // Etheric Sword
                 {
                     if (matrix[0] != null && UnstableIngot.getInstance().isCorrectItem(matrix[0])
